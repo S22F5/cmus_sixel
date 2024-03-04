@@ -22,29 +22,3 @@ tty=$(printf "/dev/" ;ps hotty $$)
 eval "$(xdotool getactivewindow getwindowgeometry --shell)"
 #display sixel cover
 printf "\e[$((LINES - $((six_width / $((HEIGHT / LINES))))-x_offset));$((COLUMNS - $((six_width / $((WIDTH / COLUMNS))))-y_offset))H%s" "$(cat "$HOME"/.config/cmus/cover.six)" > "$tty"
-
-
-
-##debug
-#debug: terminfo
-printf "coverCursor: %s,%s\n" "$((LINES - $((six_width / $((HEIGHT / LINES))))-4))" "$((COLUMNS - $((six_width / $((WIDTH / COLUMNS))))))" > /home/seefs/csix.log
-printf "TerminalInfo: %s %s %s %s\n" "$TERM" "$(whoami)" "$0" "$(pwd)" >> "$HOME"/csix.log
-printf "Input: %s\n" "$*" >> "$HOME"/csix.log
-#debug: line and columns
-printf "LinCol: %s,%s\n" "$LINES" "$COLUMNS" >> "$HOME"/csix.log
-printf "SixWidthPix: %s\n" "$six_width" >> "$HOME"/csix.log
-printf "SixWidthCol: %s\n" "$((six_width/$((HEIGHT / COLUMNS))))" >> "$HOME"/csix.log
-#debug: term size
-printf "termsize: %s,%s\n" "$HEIGHT" "$WIDTH" >> "$HOME"/csix.log
-printf "pixels_perline: %s\n" "$((HEIGHT / LINES))" >> "$HOME"/csix.log
-printf "pixels_percolumn: %s\n" "$((WIDTH / COLUMNS))" >> "$HOME"/csix.log
-#debug: term
-printf "term: %s\n" "$tty" >> "$HOME"/csix.log
-#debug: home dir
-printf "home: %s\n" "$HOME" >> "$HOME"/csix.log
-
-#unused
-##getuniqsig
-# exiftool "$music_path"  -MD5Signature -b
-##get lyrics
-#exiftool  "$music_path"  -Lyrics -b >> $HOME/.config/cmus/cover.six
