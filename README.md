@@ -6,7 +6,7 @@ cmus_sixel
 </picture>
 
 ## About
-cmus status display program that displays the cover of the current playing song using sixels
+cmus status display program that displays the cover of the current playing song using libsixel
 
 ## Installation
 1. copy cmus_sixel.sh to $HOME/.config/cmus/
