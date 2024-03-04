@@ -16,3 +16,5 @@ cmus status display program that displays the cover of the current playing song 
 - cmus
 - libsixel
 - exiftool
+- xdotool
+- xterm
