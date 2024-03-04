@@ -5,12 +5,17 @@ six_mult=7
 x_offset=4
 y_offset=0
 
+#get music path
+music_path="$(echo "$@" | sed 's/.*file\s//; s/\sartist.*//g; s/\salbumartist.*//g')"
+
+if [[ "$music_path" != "$(cat "$HOME"/.config/cmus/current_song)" ]]
+then
+#update current_song
+printf "$music_path" > "$HOME"/.config/cmus/current_song
 #get lines & columns (bash -i crashes, tput lines doesnt work, checkwinsize doesnt work)
 cmus-remote -C refresh
 eval "$( resize )"
 six_width=$(("$LINES" * "$six_mult"))
-#get music path
-music_path="$(echo "$@" | sed 's/.*file\s//; s/\sartist.*//g; s/\salbumartist.*//g')"
 #extract sixel cover from flac
 #libsixel
 exiftool "$music_path" -Picture -b | img2sixel -w"$six_width" -p"$six_palette" > "$HOME"/.config/cmus/cover.six
@@ -26,3 +31,4 @@ printf "\e[6n"; read -sdR CURPOS ;CURPOS=${CURPOS#*[}
 printf "\e[$((LINES - $((six_width / $((HEIGHT / LINES))))-x_offset));$((COLUMNS - $((six_width / $((WIDTH / COLUMNS))))-y_offset))H%s" "$(cat "$HOME"/.config/cmus/cover.six)" > "$tty"
 #restore cursor position
 printf "\e["$CURPOS"H"
+fi
