@@ -20,5 +20,9 @@ exiftool "$music_path" -Picture -b | img2sixel -w"$six_width" -p"$six_palette" >
 tty=$(printf "/dev/" ;ps hotty $$)
 #get $HEIGHT and $WIDTH
 eval "$(xdotool getactivewindow getwindowgeometry --shell)"
+#save cursor position
+printf "\e[6n"; read -sdR CURPOS ;CURPOS=${CURPOS#*[}
 #display sixel cover
 printf "\e[$((LINES - $((six_width / $((HEIGHT / LINES))))-x_offset));$((COLUMNS - $((six_width / $((WIDTH / COLUMNS))))-y_offset))H%s" "$(cat "$HOME"/.config/cmus/cover.six)" > "$tty"
+#restore cursor position
+printf "\e["$CURPOS"H"
