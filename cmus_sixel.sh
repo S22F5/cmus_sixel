@@ -1,6 +1,6 @@
-#!/bin/bash
+#!/bin/bash 
 #config
-six_palette=32
+six_palette=24
 six_mult=4
 x_offset=4
 y_offset=0
@@ -17,14 +17,18 @@ fi
 #get music path
 music_path="$(echo "$@" | sed 's/.*file\s//; s/\sartist.*//g; s/\salbumartist.*//g')"
 
+#check for song change
 if [[ "$music_path" != "$(cat "$HOME"/.config/cmus/.current_song)" ]]
 then
-
 #update current_song
 printf "%s" "$music_path" > "$HOME"/.config/cmus/.current_song
-#get lines & columns (bash -i crashes, tput lines doesnt work, checkwinsize doesnt work)
+#get lines & columns (bash -i crashes, tput lines doesnt work, checkwinsize doesnt work, stty doesnt work)
 cmus-remote -C refresh
-eval "$( resize )"
+#fixes resize sometimes returning nothing
+while [[ -z $LINES ]]
+do
+eval "$(resize)"
+done
 #if inital start
 if [ ! -f "$HOME"/.config/cmus/.runf ]
 then
@@ -48,8 +52,7 @@ tty=$(printf "/dev/" ;ps hotty $$)
 #save cursor position
 printf "\e[6n"; read -sdR CURPOS ;CURPOS=${CURPOS#*[}
 #display sixel cover
-printf "\e[$((LINES - $((six_size / $((HEIGHT / LINES))))-x_offset));$((COLUMNS - $((six_size / $((WIDTH / COLUMNS))))-y_offset))H%s" "$(cat "$HOME"/.config/cmus/.cover.six)" > "$tty"
+printf "\e[$((LINES - $((six_size / $((HEIGHT / LINES))))-x_offset));$((COLUMNS - $((six_size / $((WIDTH / COLUMNS))))-y_offset))H%s" "$(cat "$HOME"/.config/cmus/.cover.six)" >> "$tty"
 #restore cursor position
 printf "\e["$CURPOS"H"
-
 fi
