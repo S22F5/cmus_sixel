@@ -13,7 +13,7 @@ mv "$HOME"/.config/cmus/.current_song "$HOME"/.config/cmus/.old_current_song
 exit
 fi
 #get music path
-music_path="$(expr "$*" : '[^0]*file \(.*\) artist\| albumartist')"
+music_path="$(expr "$*" : '[^0]*file \(.*\) artist \| albumartist ')"
 #check for song change
 if [[ "$music_path" != "$(cat "$HOME"/.config/cmus/.current_song)" ]]
 then
