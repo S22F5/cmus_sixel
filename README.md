@@ -1,9 +1,7 @@
 cmus_sixel
 ==========
 
-<picture>
-  <img src=".github/images/demo.png?cache=none" alt= cmus_sixel>
-</picture>
+https://github.com/S22F5/cmus_sixel/assets/51321684/691e2136-cd35-48a4-98b4-3709e3f44b42
 
 ## About
 cmus status display program that displays the cover of the current playing song using libsixel
