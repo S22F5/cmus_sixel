@@ -1,8 +1,8 @@
 #!/bin/bash 
 #config
-six_palette=12
-six_mult=3
-x_offset=4
+six_palette=64
+six_mult=35
+x_offset=3
 y_offset=0
 
 #remove runf when exiting
@@ -35,7 +35,7 @@ else
 eval "$(xdotool getwindowgeometry --shell "$(cat "$HOME"/.config/cmus/.runf)")"
 fi
 #get sixel size
-six_size=$(("$HEIGHT" * "$six_mult / 10"))
+six_size=$(("$HEIGHT" * "$six_mult / 100"))
 #extract sixel cover from flac using libsixel
 exiftool "$music_path" -Picture -b | img2sixel -h"$six_size" -p"$six_palette" > "$HOME"/.config/cmus/.cover.six
 #display sixel cover
