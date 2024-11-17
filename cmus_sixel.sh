@@ -5,9 +5,6 @@ six_mult=35
 x_offset=3
 y_offset=0
 
-kill $(cat "$HOME"/.config/cmus/.pid)
-printf "%s" "$$" > "$HOME"/.config/cmus/.pid
-
 #remove runf when exiting
 if [ "$2" = "exiting" ]
 then
@@ -23,6 +20,8 @@ if [ "$music_path" != "$(cat "$HOME"/.config/cmus/.current_song)" ]
 then
   #update current_song
   printf "%s" "$music_path" > "$HOME"/.config/cmus/.current_song
+  kill $(cat "$HOME"/.config/cmus/.pid)
+  printf "%s" "$$" > "$HOME"/.config/cmus/.pid
   #clear last cover
   cmus-remote -C refresh
   #get lines & columns (bash -i crashes, tput lines doesnt work, checkwinsize doesnt work, resize crashes)
