@@ -5,10 +5,14 @@ six_mult=35
 x_offset=3
 y_offset=0
 
+kill $(cat "$HOME"/.config/cmus/.pid)
+printf "%s" "$$" > "$HOME"/.config/cmus/.pid
+
 #remove runf when exiting
 if [ "$2" = "exiting" ]
 then
   mv "$HOME"/.config/cmus/.runf "$HOME"/.config/cmus/.old_runf
+  mv "$HOME"/.config/cmus/.pid "$HOME"/.config/cmus/.old_pid
   mv "$HOME"/.config/cmus/.current_song "$HOME"/.config/cmus/.old_current_song
   exit
 fi
