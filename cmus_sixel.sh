@@ -20,7 +20,7 @@ if [ "$music_path" != "$(cat "$HOME"/.config/cmus/.current_song)" ]
 then
   #update current_song
   printf "%s" "$music_path" > "$HOME"/.config/cmus/.current_song
-  kill $(cat "$HOME"/.config/cmus/.pid)
+  kill "$(cat "$HOME"/.config/cmus/.pid)"
   printf "%s" "$$" > "$HOME"/.config/cmus/.pid
   #clear last cover
   cmus-remote -C refresh
@@ -37,9 +37,8 @@ then
     printf "%s" "$WINDOW" > "$HOME"/.config/cmus/.runf
   else
     #get $WINDOW $HEIGHT $WIDTH
-    HEIGHT=0
     eval "$(xdotool getwindowgeometry --shell "$(cat "$HOME"/.config/cmus/.runf)")"
-    if (($HEIGHT == 0))
+    if [ ! "$HEIGHT" ]
     then
         #get new $WINDOW $HEIGHT $WIDTH
         eval "$(xdotool getactivewindow getwindowgeometry --shell)"
