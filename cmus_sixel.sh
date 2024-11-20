@@ -37,7 +37,15 @@ then
     printf "%s" "$WINDOW" > "$HOME"/.config/cmus/.runf
   else
     #get $WINDOW $HEIGHT $WIDTH
+    HEIGHT=0
     eval "$(xdotool getwindowgeometry --shell "$(cat "$HOME"/.config/cmus/.runf)")"
+    if (($HEIGHT == 0))
+    then
+        #get new $WINDOW $HEIGHT $WIDTH
+        eval "$(xdotool getactivewindow getwindowgeometry --shell)"
+        #save $WINDOW to runf
+        printf "%s" "$WINDOW" > "$HOME"/.config/cmus/.runf
+    fi
   fi
   #get sixel size
   six_size=$(("$HEIGHT" * "$six_mult / 100"))
