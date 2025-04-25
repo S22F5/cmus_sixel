@@ -14,7 +14,7 @@
 
 // 2.4 times faster then shell version but not complete.
 
-int openCmusSocket() {
+static inline int openCmusSocket() {
   const char *xdgRuntimeDir = getenv("XDG_RUNTIME_DIR");
   char CmusSocketPath[256];
   snprintf(CmusSocketPath, sizeof(CmusSocketPath), "%s/cmus-socket", xdgRuntimeDir);
@@ -42,7 +42,7 @@ typedef struct {
   int size;
 } ImageData;
 
-ImageData getMusicCover(const char *musicPath) {
+static inline ImageData getMusicCover(const char *musicPath) {
   AVFormatContext *fmt_ctx = NULL;
   AVPacket *preferred_pkt = NULL;
   ImageData result = {NULL, 0};
@@ -83,7 +83,7 @@ ImageData getMusicCover(const char *musicPath) {
   return result;
 }
 
-void drawSixel(int outfd, ImageData *img, int targetHeight, int palette, int cursX, int cursY) { // should use sixel canvas later so we dont have to use temp and would also fix the fragmented write
+static inline void drawSixel(int outfd, ImageData *img, int targetHeight, int palette, int cursX, int cursY) { // should use sixel canvas later so we dont have to use temp and would also fix the fragmented write
   sixel_encoder_t *encoder = NULL;
   char options[32], heightOpt[16], colorOpt[16];
   SIXELSTATUS status;
@@ -123,6 +123,13 @@ int main(int argc, char const *argv[]) {
     exit(0);
   }
 
+  // get embeded image out of music
+  ImageData coverImage = getMusicCover(argv[4]);
+
+  // cmus remote socket
+  int cmusSock = openCmusSocket();
+  write(cmusSock, "refresh\n", 9);
+
   // read config file
   FILE *configFp;
   int sixPalette = 64; // fallback values outside else for lsp
@@ -140,12 +147,8 @@ int main(int argc, char const *argv[]) {
     fclose(configFp);
   }
 
-  // cmus remote socket
+  // get terminal size
   int ttyfd = open("/dev/tty", O_WRONLY);
-  int cmusSock = openCmusSocket();
-  write(cmusSock, "refresh\n", 9);
-
-  // get terminal col&rows
   struct winsize terminalW;
   ioctl(ttyfd, TIOCGWINSZ, &terminalW);
 
@@ -156,14 +159,13 @@ int main(int argc, char const *argv[]) {
     terminalW.ws_col = 310;
   }
 
-  // get embeded image out of music
-  ImageData coverImage = getMusicCover(argv[4]);
-
   // get sixel position
   int cursX = terminalW.ws_row - (sixSize / (terminalW.ws_ypixel / terminalW.ws_row)) - sixOffsX;
   int cursY = terminalW.ws_col - (sixSize / (terminalW.ws_xpixel / terminalW.ws_col)) - sixOffsY;
 
   // draw sixel
+  write(cmusSock, "echo  \n", 7);
+  usleep(1500);
   drawSixel(ttyfd, &coverImage, sixSize, sixPalette, cursX, cursY);
 
   // cleanup
