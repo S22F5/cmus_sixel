@@ -28,15 +28,6 @@ static inline int openCmusSocket() {
   return sock;
 }
 
-/* //used for debugging
-void printCmus(int cmusSock, const char *str) {
-  char printCommand[255];
-  snprintf(printCommand, sizeof(printCommand), "echo %s\n", str);
-  write(cmusSock, printCommand, sizeof(printCommand));
-  return;
-}
-*/
-
 typedef struct {
   unsigned char *data;
   int size;
@@ -164,7 +155,6 @@ int main(int argc, char const *argv[]) {
   int cursY = terminalW.ws_col - (sixSize / (terminalW.ws_xpixel / terminalW.ws_col)) - sixOffsY;
 
   // draw sixel
-  write(cmusSock, "echo  \n", 7);
   usleep(1500);
   drawSixel(ttyfd, &coverImage, sixSize, sixPalette, cursX, cursY);
 
