@@ -1,3 +1,4 @@
+#define _GNU_SOURCE
 #include <X11/Xlib.h>
 #include <fcntl.h>
 #include <libavcodec/packet.h>
@@ -43,6 +44,7 @@ typedef struct {
 
 ImageData getMusicCover(const char *musicPath) {
   AVFormatContext *fmt_ctx = NULL;
+  AVPacket *preferred_pkt = NULL;
   ImageData result = {NULL, 0};
 
   if (avformat_open_input(&fmt_ctx, musicPath, NULL, NULL) != 0) {
@@ -53,16 +55,28 @@ ImageData getMusicCover(const char *musicPath) {
     exit(0);
   }
 
+  // find image stream preferably with "front" comment
   for (unsigned i = 0; i < fmt_ctx->nb_streams; i++) {
     AVStream *stream = fmt_ctx->streams[i];
     if (stream->disposition & AV_DISPOSITION_ATTACHED_PIC) {
-      AVPacket pkt = stream->attached_pic;
-      if ((result.data = malloc(pkt.size))) {
-        memcpy(result.data, pkt.data, pkt.size);
-        result.size = pkt.size;
+      AVDictionaryEntry *tag = av_dict_get(stream->metadata, "comment", NULL, 0);
+      if (tag && strcasestr(tag->value, "front")) {
+        preferred_pkt = &stream->attached_pic; // front comment found
+        break;
+      } else {
+        preferred_pkt = &stream->attached_pic; // front comment not found
       }
-      break;
     }
+  }
+
+  if (preferred_pkt) {
+    result.data = malloc(preferred_pkt->size);
+    if (result.data) {
+      memcpy(result.data, preferred_pkt->data, preferred_pkt->size);
+      result.size = preferred_pkt->size;
+    }
+  } else {
+    exit(0);
   }
 
   avformat_close_input(&fmt_ctx);
