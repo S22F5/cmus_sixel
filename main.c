@@ -1,8 +1,8 @@
 #define _GNU_SOURCE
-#include <X11/Xlib.h>
 #include <fcntl.h>
 #include <libavcodec/packet.h>
 #include <libavformat/avformat.h>
+#include <libavutil/dict.h>
 #include <sixel.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -145,20 +145,12 @@ int main(int argc, char const *argv[]) {
   int cmusSock = openCmusSocket();
   write(cmusSock, "refresh\n", 9);
 
-  // get term px size
-  char *windowIdStr = getenv("WINDOWID");
-  Window cmusWindow = strtoul(windowIdStr, NULL, 0);
-  Display *display = XOpenDisplay(NULL);
-  XWindowAttributes windowAttributes;
-  XGetWindowAttributes(display, cmusWindow, &windowAttributes);
-  XCloseDisplay(display);
-
   // get terminal col&rows
   struct winsize terminalW;
   ioctl(ttyfd, TIOCGWINSZ, &terminalW);
 
   // get sixel size
-  int sixSize = windowAttributes.height * sixMult / 100;
+  int sixSize = terminalW.ws_ypixel * sixMult / 100;
   if (terminalW.ws_row == 0 || terminalW.ws_col == 0) {
     terminalW.ws_row = 75;
     terminalW.ws_col = 310;
@@ -168,8 +160,8 @@ int main(int argc, char const *argv[]) {
   ImageData coverImage = getMusicCover(argv[4]);
 
   // get sixel position
-  int cursX = terminalW.ws_row - (sixSize / (windowAttributes.height / terminalW.ws_row)) - sixOffsX;
-  int cursY = terminalW.ws_col - (sixSize / (windowAttributes.width / terminalW.ws_col)) - sixOffsY;
+  int cursX = terminalW.ws_row - (sixSize / (terminalW.ws_ypixel / terminalW.ws_row)) - sixOffsX;
+  int cursY = terminalW.ws_col - (sixSize / (terminalW.ws_xpixel / terminalW.ws_col)) - sixOffsY;
 
   // draw sixel
   drawSixel(ttyfd, &coverImage, sixSize, sixPalette, cursX, cursY);
