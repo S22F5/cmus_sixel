@@ -79,13 +79,12 @@ static inline void drawSixel(int outfd, ImageData *img, int targetHeight, int pa
   char options[32], heightOpt[16], colorOpt[16];
   SIXELSTATUS status;
 
-  char tempname[] = "/tmp/sixel_XXXXXX";
-  int fd;
-  fd = mkstemp(tempname);
-  if (fd == -1)
-    return;
-  write(fd, img->data, img->size);
-  close(fd);
+  FILE *fd;
+  fd= fopen("/tmp/sixel_X", "wb");
+  if (fd == NULL)
+    exit(0);
+  fwrite(img->data, img->size, 1, fd);
+  fclose(fd);
 
   status = sixel_encoder_new(&encoder, NULL);
 
@@ -102,7 +101,7 @@ static inline void drawSixel(int outfd, ImageData *img, int targetHeight, int pa
   char buf[32];
   snprintf(buf, sizeof(buf), "\0337\033[%d;%dH", cursX, cursY);
   write(outfd, buf, strlen(buf)); // set cursor location
-  sixel_encoder_encode(encoder, tempname);
+  sixel_encoder_encode(encoder, "/tmp/sixel_X");
   write(outfd, "\0338", sizeof("\0338") - 1); // restore cursor
 
   sixel_encoder_unref(encoder);
