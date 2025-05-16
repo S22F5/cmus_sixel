@@ -163,7 +163,6 @@ int main(int argc, char const *argv[]) {
   int cursY = terminalW.ws_col - (sixSize / (terminalW.ws_xpixel / terminalW.ws_col)) - sixOffsY;
 
   // draw sixel
-  usleep(1500);
   drawSixel(ttyfd, &coverImage, sixSize, sixPalette, cursX, cursY);
 
   // cleanup
