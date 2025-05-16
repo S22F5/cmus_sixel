@@ -12,7 +12,7 @@
 #include <sys/un.h>
 #include <unistd.h>
 
-// 2.4 times faster then shell version but not complete.
+// 2.4 times faster then shell version.
 
 static inline int openCmusSocket() {
   const char *xdgRuntimeDir = getenv("XDG_RUNTIME_DIR");
@@ -74,23 +74,22 @@ static inline ImageData getMusicCover(const char *musicPath) {
   return result;
 }
 
-static inline void drawSixel(int outfd, ImageData *img, int targetHeight, int palette, int cursX, int cursY) { // should use sixel canvas later so we dont have to use temp and would also fix the fragmented write
+static inline void drawSixel(int outfd, ImageData *img, int targetHeight, int palette, int cursX, int cursY) { // should use sixel canvas later to reduce file writes.
   sixel_encoder_t *encoder = NULL;
   char options[32], heightOpt[16], colorOpt[16];
   SIXELSTATUS status;
 
-  FILE *fd;
-  fd= fopen("/tmp/sixel_X", "wb");
-  if (fd == NULL)
+  FILE *sixelIn;
+  sixelIn = fopen("/tmp/sixel_IN", "wb");
+  if (sixelIn == NULL)
     exit(0);
-  fwrite(img->data, img->size, 1, fd);
-  fclose(fd);
+  fwrite(img->data, img->size, 1, sixelIn);
+  fclose(sixelIn);
 
   status = sixel_encoder_new(&encoder, NULL);
 
   // set encoder options
-  snprintf(options, sizeof(options), "/dev/fd/%d", outfd);
-  sixel_encoder_setopt(encoder, SIXEL_OPTFLAG_OUTPUT, options);
+  sixel_encoder_setopt(encoder, SIXEL_OPTFLAG_OUTPUT, "/tmp/sixel_OUT");
 
   snprintf(colorOpt, sizeof(colorOpt), "%d", palette);
   sixel_encoder_setopt(encoder, SIXEL_OPTFLAG_COLORS, colorOpt);
@@ -98,13 +97,23 @@ static inline void drawSixel(int outfd, ImageData *img, int targetHeight, int pa
   snprintf(heightOpt, sizeof(heightOpt), "%d", targetHeight);
   sixel_encoder_setopt(encoder, SIXEL_OPTFLAG_HEIGHT, heightOpt);
 
-  char buf[32];
-  snprintf(buf, sizeof(buf), "\0337\033[%d;%dH", cursX, cursY);
-  write(outfd, buf, strlen(buf)); // set cursor location
-  sixel_encoder_encode(encoder, "/tmp/sixel_X");
-  write(outfd, "\0338", sizeof("\0338") - 1); // restore cursor
-
+  sixel_encoder_encode(encoder, "/tmp/sixel_IN");
   sixel_encoder_unref(encoder);
+
+  FILE *sixelOut = fopen("/tmp/sixel_OUT", "rb");
+  fseek(sixelOut, 0, SEEK_END);
+  long sixelOutSize = ftell(sixelOut);
+  rewind(sixelOut);
+  char *sixelBuff = malloc(sixelOutSize + 128);
+  char cursBuff[24];
+  snprintf(cursBuff, sizeof(cursBuff), "\0337\033[%d;%dH", cursX, cursY);
+  memcpy(sixelBuff, cursBuff, sizeof(cursBuff));
+  fread(sixelBuff + sizeof(cursBuff), 1, sixelOutSize, sixelOut);
+  memcpy(sixelBuff + sizeof(cursBuff) + sixelOutSize, "\0338", sizeof("\0338") - 1);
+  write(outfd, sixelBuff, sizeof(cursBuff) + sixelOutSize + sizeof("\0338") - 1);
+
+  free(sixelBuff);
+  fclose(sixelOut);
 }
 
 int main(int argc, char const *argv[]) {
