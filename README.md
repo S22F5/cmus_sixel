@@ -29,6 +29,8 @@ sudo pacman -S libsixel ffmpeg cmus
 ### 2. Build from Source
 ```bash
 git clone https://github.com/S22F5/cmus_sixel.git && cd cmus_sixel
+```
+```bash
 gcc -O3 main.c -o cmus_sixel $(pkg-config --libs libsixel libavformat libavutil)
 ```
 
