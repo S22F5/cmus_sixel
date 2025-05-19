@@ -23,7 +23,8 @@ static inline int openCmusSocket() {
   memset(&addr, 0, sizeof(addr));
   addr.sun_family = AF_UNIX;
   strncpy(addr.sun_path, CmusSocketPath, sizeof(addr.sun_path) - 1);
-  int conn = connect(sock, (struct sockaddr *)&addr, sizeof(addr));
+  if (connect(sock, (struct sockaddr *)&addr, sizeof(addr)) == -1)
+    exit(0);
 
   return sock;
 }
@@ -43,6 +44,7 @@ static inline ImageData getMusicCover(const char *musicPath) {
   }
 
   if (avformat_find_stream_info(fmt_ctx, NULL) < 0) {
+    avformat_close_input(&fmt_ctx);
     exit(0);
   }
 
@@ -54,7 +56,7 @@ static inline ImageData getMusicCover(const char *musicPath) {
       if (tag && strcasestr(tag->value, "front")) {
         preferred_pkt = &stream->attached_pic; // front comment found
         break;
-      } else {
+      } else if (!preferred_pkt) {
         preferred_pkt = &stream->attached_pic; // front comment not found
       }
     }
@@ -67,6 +69,7 @@ static inline ImageData getMusicCover(const char *musicPath) {
       result.size = preferred_pkt->size;
     }
   } else {
+    avformat_close_input(&fmt_ctx);
     exit(0);
   }
 
@@ -76,8 +79,7 @@ static inline ImageData getMusicCover(const char *musicPath) {
 
 static inline void drawSixel(int outfd, ImageData *img, int targetHeight, int palette, int cursX, int cursY) { // should use sixel canvas later to reduce file writes.
   sixel_encoder_t *encoder = NULL;
-  char options[32], heightOpt[16], colorOpt[16];
-  SIXELSTATUS status;
+  char heightOpt[16], colorOpt[16];
 
   FILE *sixelIn;
   sixelIn = fopen("/tmp/sixel_IN", "wb");
@@ -86,7 +88,7 @@ static inline void drawSixel(int outfd, ImageData *img, int targetHeight, int pa
   fwrite(img->data, img->size, 1, sixelIn);
   fclose(sixelIn);
 
-  status = sixel_encoder_new(&encoder, NULL);
+  sixel_encoder_new(&encoder, NULL);
 
   // set encoder options
   sixel_encoder_setopt(encoder, SIXEL_OPTFLAG_OUTPUT, "/tmp/sixel_OUT");
@@ -104,16 +106,19 @@ static inline void drawSixel(int outfd, ImageData *img, int targetHeight, int pa
   fseek(sixelOut, 0, SEEK_END);
   long sixelOutSize = ftell(sixelOut);
   rewind(sixelOut);
-  char *sixelBuff = malloc(sixelOutSize + 128);
+
   char cursBuff[24];
-  snprintf(cursBuff, sizeof(cursBuff), "\0337\033[%d;%dH", cursX, cursY);
-  memcpy(sixelBuff, cursBuff, sizeof(cursBuff));
-  fread(sixelBuff + sizeof(cursBuff), 1, sixelOutSize, sixelOut);
-  memcpy(sixelBuff + sizeof(cursBuff) + sixelOutSize, "\0338", sizeof("\0338") - 1);
-  write(outfd, sixelBuff, sizeof(cursBuff) + sixelOutSize + sizeof("\0338") - 1);
+  size_t cursLen = snprintf(cursBuff, sizeof(cursBuff), "\0337\033[%d;%dH", cursX, cursY);
+  char *sixelBuff = malloc(cursLen + sixelOutSize + 2);
+  memcpy(sixelBuff, cursBuff, cursLen);
+  size_t sixelRead = fread(sixelBuff + cursLen, 1, sixelOutSize, sixelOut);
+  memcpy(sixelBuff + cursLen + sixelRead, "\0338", 2);
+
+  write(outfd, sixelBuff, cursLen + sixelRead + 2);
 
   free(sixelBuff);
   fclose(sixelOut);
+  sixel_encoder_unref(encoder);
 }
 
 int main(int argc, char const *argv[]) {
@@ -127,7 +132,7 @@ int main(int argc, char const *argv[]) {
 
   // cmus remote socket
   int cmusSock = openCmusSocket();
-  write(cmusSock, "refresh\n", 9);
+  write(cmusSock, "refresh\n", 8);
 
   // read config file
   FILE *configFp;
