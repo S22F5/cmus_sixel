@@ -1,0 +1,54 @@
+name: buildRelease
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Install Dependencies
+        run: sudo apt-get update && sudo apt-get install -y gcc pkg-config libsixel-dev libavformat-dev libavutil-dev
+
+      - name: Compile cmus_sixel
+        run: gcc -O3 main.c -o cmus_sixel $(pkg-config --libs libsixel libavformat libavutil) -I/usr/include -I/usr/include/sixel
+
+      - name: Package Files
+        run: zip cmus_sixel.zip cmus_sixel cmus_sixel.conf
+
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: cmus_sixel
+          path: cmus_sixel.zip
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Get Commit Tag
+        run: echo "TAG_NAME=$(echo $GITHUB_SHA | cut -c1-7)" >> $GITHUB_ENV
+
+
+      - name: Download Artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: cmus_sixel
+          path: release_assets
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ env.TAG_NAME }}
+          name: Release ${{ env.TAG_NAME }}
+          files: release_assets/cmus_sixel.zip
