@@ -3,7 +3,9 @@ name: buildRelease
 on:
   push:
     branches:
-      - c
+      - "c"
+    paths:
+      - "main.c"
 
 jobs:
   build:
