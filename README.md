@@ -18,12 +18,12 @@ cmus status display program that displays the cover of the current playing song 
 
 #### Debian/Ubuntu: 
 ```bash
-sudo apt install libsixel-dev libavformat-dev libavutil-dev cmus
+sudo apt install gcc libsixel-dev libavformat-dev libavutil-dev cmus
 ```
 
 #### Arch Linux:
 ```bash
-sudo pacman -S libsixel ffmpeg cmus
+sudo pacman -S gcc libsixel ffmpeg cmus
 ```
 
 ### 2. Build from Source
