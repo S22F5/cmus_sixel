@@ -1,3 +1,6 @@
+# DEPRECATED BRANCH
+## REPLACED BY [C VERSION](https://github.com/S22F5/cmus_sixel/tree/c)
+
 cmus_sixel
 ==========
 
