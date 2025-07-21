@@ -6,7 +6,7 @@ on:
       - "c"
     paths:
       - "main.c"
-      - ".github/workflows/buildRelease.yml'
+      - ".github/workflows/buildRelease.yml"
 
 jobs:
   build:
