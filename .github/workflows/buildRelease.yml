@@ -19,7 +19,7 @@ jobs:
         run: sudo apt-get update && sudo apt-get install -y gcc pkg-config libsixel-dev libavformat-dev libavutil-dev
 
       - name: Compile cmus_sixel
-        run: gcc -O3 main.c -o cmus_sixel $(pkg-config --libs libsixel libavformat libavutil) -I/usr/include -I/usr/include/sixel
+        run: gcc -O3 main.c -o cmus_sixel $(pkg-config --libs libsixel libavformat libavcodec libswscale libavutil) -I/usr/include -I/usr/include/sixel
 
       - name: Package Files
         run: zip cmus_sixel.zip cmus_sixel cmus_sixel.conf

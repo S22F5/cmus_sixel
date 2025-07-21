@@ -4,11 +4,13 @@ cmus_sixel
 ![demo](https://github.com/user-attachments/assets/fe159771-f041-4ab3-87ba-6a38fde2d331)
 
 ## About
-cmus status display program that displays the cover of the current playing song using libsixel.
+cmus status display program that displays the cover of the current playing song using libsixel or kitty.
 
 ## Requirements
-- Terminal with [Sixel support](https://www.arewesixelyet.com)
+- Terminal with [Sixel](https://www.arewesixelyet.com) or [Kitty](https://sw.kovidgoyal.net/kitty/graphics-protocol/) support
 - cmus
+
+## Dependencies
 - ffmpeg
 - libsixel
 
@@ -31,7 +33,7 @@ sudo pacman -S gcc libsixel ffmpeg cmus pkgconf
 git clone https://github.com/S22F5/cmus_sixel.git && cd cmus_sixel
 ```
 ```bash
-gcc -O3 main.c -o cmus_sixel $(pkg-config --libs libsixel libavformat libavutil)
+gcc -O3 main.c -o cmus_sixel $(pkg-config --libs libsixel libavformat libavcodec libswscale libavutil)
 ```
 
 ### 3. Install
