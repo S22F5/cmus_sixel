@@ -20,7 +20,7 @@ cmus status display program that displays the cover of the current playing song 
 
 #### Debian/Ubuntu: 
 ```bash
-sudo apt install gcc libsixel-dev libavformat-dev libavutil-dev cmus pkg-config
+sudo apt install gcc libsixel-dev libavformat-dev libavutil-dev libswscale-dev cmus pkg-config
 ```
 
 #### Arch Linux:
