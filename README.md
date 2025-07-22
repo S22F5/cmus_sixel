@@ -1,7 +1,7 @@
 cmus_sixel
 ==========
 
-![demo](https://github.com/user-attachments/assets/fe159771-f041-4ab3-87ba-6a38fde2d331)
+![demo](https://github.com/user-attachments/assets/0ada109e-78a4-4e89-9e0d-e2ded93bc2c3)
 
 ## About
 cmus status display program that displays the cover of the current playing song using libsixel or kitty.
