@@ -1,3 +1,4 @@
+#include <linux/limits.h>
 #define _GNU_SOURCE
 #include <fcntl.h>
 #include <libavcodec/avcodec.h>
@@ -46,8 +47,8 @@ static inline Config parseConfig(const char *configPath) {
 
 static inline int openCmusSocket() {
   const char *xdgRuntimeDir = getenv("XDG_RUNTIME_DIR");
-  char CmusSocketPath[256];
-  snprintf(CmusSocketPath, sizeof(CmusSocketPath), "%s/cmus-socket", xdgRuntimeDir);
+  char cmusSocketPath[PATH_MAX];
+  snprintf(cmusSocketPath, sizeof(cmusSocketPath), "%s/cmus-socket", xdgRuntimeDir);
   int sock = socket(AF_UNIX, SOCK_STREAM, 0);
   if (sock < 0) {
     exit(1);
@@ -55,7 +56,7 @@ static inline int openCmusSocket() {
   struct sockaddr_un addr;
   memset(&addr, 0, sizeof(addr));
   addr.sun_family = AF_UNIX;
-  strncpy(addr.sun_path, CmusSocketPath, sizeof(addr.sun_path) - 1);
+  strncpy(addr.sun_path, cmusSocketPath, sizeof(addr.sun_path) - 1);
   if (connect(sock, (struct sockaddr *)&addr, sizeof(addr)) == -1) exit(1);
 
   return sock;
