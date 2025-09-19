@@ -23,13 +23,13 @@ jobs:
         run: gcc -O3 main.c -o cmus_sixel $(pkg-config --libs libsixel libavformat libavcodec libswscale libavutil) -I/usr/include -I/usr/include/sixel
 
       - name: Package Files
-        run: zip cmus_sixel.zip cmus_sixel cmus_sixel.conf
+        run: zip debian-cmus_sixel.zip cmus_sixel cmus_sixel.conf
 
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
           name: cmus_sixel
-          path: cmus_sixel.zip
+          path: debian-cmus_sixel.zip
 
   release:
     needs: build
@@ -54,4 +54,4 @@ jobs:
         with:
           tag_name: ${{ env.TAG_NAME }}
           name: Release ${{ env.TAG_NAME }}
-          files: release_assets/cmus_sixel.zip
+          files: release_assets/debian-cmus_sixel.zip
