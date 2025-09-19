@@ -9,8 +9,6 @@ cmus status display program that displays the cover of the current playing song 
 ## Requirements
 - Terminal with [Sixel](https://www.arewesixelyet.com) or [Kitty](https://sw.kovidgoyal.net/kitty/graphics-protocol/) support
 - cmus
-
-## Build Dependencies
 - ffmpeg
 - libsixel
 

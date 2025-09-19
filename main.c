@@ -219,7 +219,7 @@ static inline void drawKitty(int outfd, ImageData *img, int cursX, int cursY, in
                      "f=24,"            // image format (rgb24)
                      "s=%d,v=%d,"       // image width,height
                      "t=s,m=0,"         // transmission medium, more data available
-                     "S=%zu;"           // image buffer size
+                     "S=%d;"            // image buffer size
                      "L2tpdHR5Q292ZXI=" // base64 <(printf "/kittyCover")
                      "\033\\"           // end kitty data
                      "\0338",           // restore saved cursor position
