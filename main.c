@@ -23,21 +23,23 @@
 
 typedef struct {
   int sixPalette;
-  int Size;
-  int OffsX;
-  int OffsY;
+  int size;
+  int offsX;
+  int offsY;
   int useKitty;
+  int forceSquare;
 } Config;
 
 static inline Config parseConfig(const char *configPath) {
   FILE *configFp = fopen(configPath, "r");
   if (configFp != NULL) {
-    Config config = {64, 50, 3, 0, 0};
+    Config config = {64, 50, 3, 0, 0, 0};
     fscanf(configFp, "%*s %d\n", &config.sixPalette);
-    fscanf(configFp, "%*s %d\n", &config.Size);
-    fscanf(configFp, "%*s %d\n", &config.OffsX);
-    fscanf(configFp, "%*s %d\n", &config.OffsY);
+    fscanf(configFp, "%*s %d\n", &config.size);
+    fscanf(configFp, "%*s %d\n", &config.offsX);
+    fscanf(configFp, "%*s %d\n", &config.offsY);
     fscanf(configFp, "%*s %d\n", &config.useKitty);
+    fscanf(configFp, "%*s %d\n", &config.forceSquare);
     fclose(configFp);
     return config;
   } else {
@@ -65,13 +67,15 @@ static inline int openCmusSocket() {
 typedef struct {
   unsigned char *data;
   int size;
+  int width;
+  int height;
 } ImageData;
 
-static inline ImageData getCover(const char *musicPath, int size) {
+static inline ImageData getCover(const char *musicPath, int maxW, int maxH, int forceSquare) {
   AVFormatContext *fmtCtx = NULL;
   AVStream *preferredStream = NULL;
   AVPacket *preferredPkt = NULL;
-  ImageData result = {NULL, 0};
+  ImageData result = {NULL, 0, 0, 0};
 
   if (avformat_open_input(&fmtCtx, musicPath, NULL, NULL) != 0) {
     exit(1);
@@ -126,17 +130,37 @@ static inline ImageData getCover(const char *musicPath, int size) {
     exit(1);
   }
 
-  // convert to RGB24 and resize
-  struct SwsContext *swsCtx = sws_getContext(frame->width, frame->height, frame->format, size, size, AV_PIX_FMT_RGB24, SWS_BILINEAR, NULL, NULL, NULL);
+  // compute dst. size
+  int dstW = maxW;
+  int dstH = maxH;
+  if (forceSquare) {
+    int s = maxW < maxH ? maxW : maxH;
+    dstW = dstH = s > 0 ? s : 1;
+  } else {
+    int srcW = frame->width > 0 ? frame->width : 1;
+    int srcH = frame->height > 0 ? frame->height : 1;
+    double scaleW = (double)maxW / (double)srcW;
+    double scaleH = (double)maxH / (double)srcH;
+    double scale = scaleW < scaleH ? scaleW : scaleH;
+    if (scale <= 0.0) scale = 1.0;
+    dstW = (int)(srcW * scale);
+    dstH = (int)(srcH * scale);
+    if (dstW < 1) dstW = 1;
+    if (dstH < 1) dstH = 1;
+  }
 
-  int rgbBufSize = av_image_get_buffer_size(AV_PIX_FMT_RGB24, size, size, 1);
+  // convert to RGB24 and resize
+  struct SwsContext *swsCtx = sws_getContext(frame->width, frame->height, frame->format, dstW, dstH, AV_PIX_FMT_RGB24, SWS_BILINEAR, NULL, NULL, NULL);
+  int rgbBufSize = av_image_get_buffer_size(AV_PIX_FMT_RGB24, dstW, dstH, 1);
   unsigned char *rgbBuffer = malloc(rgbBufSize);
   AVFrame *rgbFrame = av_frame_alloc();
-  av_image_fill_arrays(rgbFrame->data, rgbFrame->linesize, rgbBuffer, AV_PIX_FMT_RGB24, size, size, 1);
+  av_image_fill_arrays(rgbFrame->data, rgbFrame->linesize, rgbBuffer, AV_PIX_FMT_RGB24, dstW, dstH, 1);
   sws_scale(swsCtx, (const uint8_t *const *)frame->data, frame->linesize, 0, frame->height, rgbFrame->data, rgbFrame->linesize);
 
   result.data = rgbBuffer;
   result.size = rgbBufSize;
+  result.width = dstW;
+  result.height = dstH;
 
   // cleanup
   av_frame_free(&rgbFrame);
@@ -161,23 +185,23 @@ static int writeSixelBuffer(char *data, int size, void *priv) {
   return size;
 }
 
-static inline void drawSixel(int outfd, ImageData *img, int cursX, int cursY, int coverSize, int palette) {
+static inline void drawSixel(int outfd, ImageData *img, int cursX, int cursY, int palette) {
   int cmusSock = openCmusSocket();
   write(cmusSock, "refresh\n", 8);
   close(cmusSock);
 
   char *writeBuff = NULL;
-  // cursor move
-  char cursBuff[24];
+  // cursor move (save + move)
+  char cursBuff[64];
   size_t cursLen = snprintf(cursBuff, sizeof(cursBuff), "\0337\033[%d;%dH", cursX, cursY);
   writeSixelBuffer(cursBuff, cursLen, &writeBuff);
-  // encode sixel
+  // encode sixel using actual dimensions
   sixel_dither_t *dither;
   sixel_dither_new(&dither, palette, NULL);
-  sixel_dither_initialize(dither, img->data, coverSize, coverSize, SIXEL_PIXELFORMAT_RGB888, LARGE_NORM, REP_CENTER_BOX, QUALITY_LOW);
+  sixel_dither_initialize(dither, img->data, img->width, img->height, SIXEL_PIXELFORMAT_RGB888, LARGE_NORM, REP_CENTER_BOX, QUALITY_LOW);
   sixel_output_t *output;
   sixel_output_new(&output, writeSixelBuffer, &writeBuff, NULL);
-  sixel_encode(img->data, coverSize, coverSize, SIXEL_PIXELFORMAT_RGB888, dither, output);
+  sixel_encode(img->data, img->width, img->height, SIXEL_PIXELFORMAT_RGB888, dither, output);
   // cursor restore
   writeSixelBuffer("\0338", 2, &writeBuff);
   // write buffer to outfd
@@ -189,11 +213,11 @@ static inline void drawSixel(int outfd, ImageData *img, int cursX, int cursY, in
   sixel_output_destroy(output);
 }
 
-static inline void drawKitty(int outfd, ImageData *img, int cursX, int cursY, int coverSize) {
+static inline void drawKitty(int outfd, ImageData *img, int cursX, int cursY) {
   // create shared memory object
   int shm = shm_open("/kittyCover", O_CREAT | O_RDWR, 0666);
   if (shm < 0)
-    exit(1);;
+    exit(1);
   if (ftruncate(shm, img->size) < 0) {
     close(shm);
     exit(1);
@@ -209,8 +233,8 @@ static inline void drawKitty(int outfd, ImageData *img, int cursX, int cursY, in
   munmap(ptr, img->size);
   close(shm);
 
-  // build image display buffer
-  char buf[150];
+  // build kitty image display buffer
+  char buf[400];
   int len = snprintf(buf, sizeof(buf),
                      "\033_Ga=d\033\\"  // kitty delete all visible images
                      "\0337"            // save cursor position
@@ -223,7 +247,7 @@ static inline void drawKitty(int outfd, ImageData *img, int cursX, int cursY, in
                      "L2tpdHR5Q292ZXI=" // base64 <(printf "/kittyCover")
                      "\033\\"           // end kitty data
                      "\0338",           // restore saved cursor position
-                     cursX, cursY, coverSize, coverSize, img->size);
+                     cursX, cursY, img->width, img->height, img->size);
 
   // write image display buffer
   write(outfd, buf, len);
@@ -247,24 +271,37 @@ int main(int argc, char *argv[]) {
   struct winsize terminalW;
   ioctl(ttyfd, TIOCGWINSZ, &terminalW);
 
-  // get cover size
-  int coverSize = terminalW.ws_ypixel * config.Size / 100;
-  if (terminalW.ws_row == 0 || terminalW.ws_col == 0) {
-    terminalW.ws_row = 75;
-    terminalW.ws_col = 310;
-  }
+  const int FALLBACK_CELL_W = 8;
+  const int FALLBACK_CELL_H = 16;
+  if (terminalW.ws_xpixel == 0) terminalW.ws_xpixel = terminalW.ws_col * FALLBACK_CELL_W;
+  if (terminalW.ws_ypixel == 0) terminalW.ws_ypixel = terminalW.ws_row * FALLBACK_CELL_H;
+  if (terminalW.ws_row == 0) terminalW.ws_row = 24;
+  if (terminalW.ws_col == 0) terminalW.ws_col = 80;
 
-  // get cursor position
-  int cursX = terminalW.ws_row - (coverSize / (terminalW.ws_ypixel / terminalW.ws_row)) - config.OffsX;
-  int cursY = terminalW.ws_col - (coverSize / (terminalW.ws_xpixel / terminalW.ws_col)) - config.OffsY;
+  int maxCoverH = (int)((long)terminalW.ws_ypixel * config.size / 100);
+  int maxCoverW = (int)((long)terminalW.ws_xpixel * config.size / 100);
+  if (maxCoverH < 1) maxCoverH = 1;
+  if (maxCoverW < 1) maxCoverW = 1;
 
   // extract RGB24 cover
-  ImageData coverImage = getCover(argv[4], coverSize);
+  ImageData coverImage = getCover(argv[4], maxCoverW, maxCoverH, config.forceSquare);
+
+  // get terminal character size
+  int pixelsPerCol = terminalW.ws_xpixel / terminalW.ws_col;
+  int pixelsPerRow = terminalW.ws_ypixel / terminalW.ws_row;
+  if (pixelsPerCol <= 0) pixelsPerCol = FALLBACK_CELL_W;
+  if (pixelsPerRow <= 0) pixelsPerRow = FALLBACK_CELL_H;
+  int coverCols = (coverImage.width  + pixelsPerCol - 1) / pixelsPerCol;
+  int coverRows = (coverImage.height + pixelsPerRow - 1) / pixelsPerRow;
+
+  // compute cursor position
+  int cursX = terminalW.ws_row - coverRows - config.offsX + 1;
+  int cursY = terminalW.ws_col - coverCols - config.offsY + 1;
 
   if (config.useKitty == 1) {
-    drawKitty(ttyfd, &coverImage, cursX, cursY, coverSize);
+    drawKitty(ttyfd, &coverImage, cursX, cursY);
   } else {
-    drawSixel(ttyfd, &coverImage, cursX, cursY, coverSize, config.sixPalette);
+    drawSixel(ttyfd, &coverImage, cursX, cursY, config.sixPalette);
   }
 
   //cleanup
@@ -272,3 +309,4 @@ int main(int argc, char *argv[]) {
   close(ttyfd);
   exit(0);
 }
+
